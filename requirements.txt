@@ -1,3 +1,4 @@
+# Add PyTorch official wheel index to install GPU-enabled torch built for CUDA 12.4 (instead of CPU-only version from PyPI)
 --extra-index-url https://download.pytorch.org/whl/cu124
 
 torch
@@ -16,8 +17,9 @@ notebook
 boto3
 mypy-boto3-s3
 python-box==6.0.2
-ensure==1.0.2
+ensure==1.0.4
 fastapi==0.78.0
 uvicorn==0.18.3
 Jinja2==3.1.2
+accelerate
 -e .
