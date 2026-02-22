@@ -39,3 +39,8 @@ class ModelTrainingConfig:
     eval_strategy: str
     predict_with_generate: bool
     generation_max_length: int
+
+@dataclass(frozen=True)
+class PredictionConfig:
+    model_path: Path
+    tokenizer_path: Path

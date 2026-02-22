@@ -1,6 +1,6 @@
 from textSummarizer.constants import *
 from textSummarizer.utils.common import read_yaml, create_directories
-from textSummarizer.entity import (DataIngestionConfig, DataValidationConfig, DataTransformationConfig, ModelTrainingConfig)
+from textSummarizer.entity import (DataIngestionConfig, DataValidationConfig, DataTransformationConfig, ModelTrainingConfig, PredictionConfig)
 
 
 class ConfigurationManager:
@@ -79,4 +79,14 @@ class ConfigurationManager:
         )
 
         return model_training_config
+
+    def get_prediction_config(self) -> PredictionConfig:
+        config = self.config.prediction
+
+        prediction_config = PredictionConfig(
+            model_path = Path(config.model_path),
+            tokenizer_path = Path(config.tokenizer_path)
+        )
+
+        return prediction_config
     
