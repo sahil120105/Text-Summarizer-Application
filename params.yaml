@@ -1,1 +1,15 @@
-key: value
+TrainingArguments:
+  output_dir: "artifacts/model_trainer"
+  num_train_epochs: 1
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  warmup_steps: 500
+  weight_decay: 0.01
+  logging_steps: 10
+  eval_steps: 10     
+  save_steps: 200            
+  gradient_accumulation_steps: 16
+  report_to: "none"
+  eval_strategy: "steps"
+  predict_with_generate: true
+  generation_max_length: 128
