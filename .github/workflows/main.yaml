@@ -1,0 +1,169 @@
+# The name of the workflow as it will appear in the GitHub Actions UI
+name: workflow
+
+# This defines the "trigger" for the workflow
+on:
+  push:
+    # It will only run when code is pushed to the 'main' branch
+    branches:
+      - main
+    # It will skip running entirely if ONLY the README.md file was changed
+    paths-ignore:
+      - 'README.md'
+
+# Grants the workflow specific permissions needed to execute
+permissions:
+  # Allows the workflow to request temporary OIDC tokens (often used for secure cloud logins)
+  id-token: write
+  # Allows the workflow to read the repository's code
+  contents: read
+
+# The different phases (jobs) of our pipeline
+jobs:
+  
+  # JOB 1: Test and verify the code
+  integration:
+    name: Continuous Integration
+    # Runs on a fresh, temporary Ubuntu machine hosted by GitHub
+    runs-on: ubuntu-latest
+    steps:
+      # Downloads your repository code onto the runner machine (Updated to v4)
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Placeholder: Where you would run code formatting/linting tools (e.g., ESLint, Flake8)
+      - name: Lint code
+        run: echo "Linting repository"
+
+      # Placeholder: Where you would run your testing framework (e.g., PyTest, Jest)
+      - name: Run unit tests
+        run: echo "Running unit tests"
+
+  # JOB 2: Build the Docker image and upload it to AWS
+  build-and-push-ecr-image:
+    name: Continuous Delivery
+    # Crucial: This job will only start if the 'integration' job above finishes successfully
+    needs: integration
+    runs-on: ubuntu-latest
+    steps:
+      # Downloads the code again (since this is a fresh runner machine)
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Installs JSON parsing (jq) and extraction (unzip) tools on the Ubuntu runner
+      - name: Install Utilities
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq unzip
+          
+      # Securely logs into AWS using secrets stored in your GitHub repository (Updated to v4)
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Authenticates your local Docker client with your private AWS ECR registry (Updated to v2)
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Builds the Docker container and pushes it to AWS
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          # Pulls the ECR registry URL from the previous login step
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          # Pulls your specific repository name from GitHub Secrets
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
+          # Tags this image as the 'latest' version
+          IMAGE_TAG: latest
+        run: |
+          # Build the Docker image from the Dockerfile in the current directory ('.')
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          
+          # Upload the built image to AWS ECR
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          
+          # Modern syntax: Saves the full image URL as an output variable for other steps to use
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+      
+      - name: Clean up old (untagged) ECR images
+        env:
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          # 1. Ask AWS to list all images in the repo that are currently "UNTAGGED"
+          UNTAGGED_IMAGES=$(aws ecr list-images \
+            --region $AWS_REGION \
+            --repository-name $ECR_REPOSITORY \
+            --filter "tagStatus=UNTAGGED" \
+            --query 'imageIds[*]' \
+            --output json)
+          
+          # 2. Check if the list is empty. If it has data, execute the delete command.
+          if [ "$UNTAGGED_IMAGES" != "[]" ] && [ -n "$UNTAGGED_IMAGES" ]; then
+            echo "Found untagged images. Deleting to save Free Tier space..."
+            aws ecr batch-delete-image \
+              --region $AWS_REGION \
+              --repository-name $ECR_REPOSITORY \
+              --image-ids "$UNTAGGED_IMAGES"
+            echo "Cleanup complete."
+          else
+            echo "No old untagged images found. Everything is clean."
+          fi
+
+  # JOB 3: Download the new image on your server and run it
+  Continuous-Deployment:
+    # This job only runs if the image was successfully built and pushed
+    needs: build-and-push-ecr-image
+    # Crucial: Runs on your OWN server (EC2 instance) that has a GitHub Runner installed
+    runs-on: self-hosted
+    steps:
+      # Downloads the code to your server
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Logs your server into AWS so it has permission to download the private image
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Authenticates Docker on your server with ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        
+      # Downloads the newly built image from AWS ECR to your server
+      - name: Pull latest images
+        run: |
+         docker pull ${{secrets.AWS_ECR_LOGIN_URI}}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+         
+      # Stops and deletes the old running container so the port is freed up
+      # Using "|| true" ensures the pipeline doesn't fail if the container isn't running yet
+      - name: Stop and remove old container
+        run: |
+         docker stop texts || true
+         docker rm -fv texts || true
+        
+      # Starts the new container
+      - name: Run Docker Image to serve users
+        run: |
+         # -d runs it in the background
+         # -p 8080:8080 maps your server's port 8080 to the container's port 8080
+         # --name=texts gives the container a predictable name
+         # -e passes your AWS credentials inside the container as environment variables
+         docker run -d -p 8080:8080 --name=texts \
+         -e 'AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}' \
+         -e 'AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}' \
+         -e 'AWS_REGION=${{ secrets.AWS_REGION }}' \
+         ${{secrets.AWS_ECR_LOGIN_URI}}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+         
+      # Cleans up old, unused Docker images to prevent your server's hard drive from filling up
+      - name: Clean previous images and containers
+        run: |
+         docker system prune -f

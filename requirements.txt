@@ -25,3 +25,33 @@ Jinja2==3.1.2
 accelerate
 evaluate
 -e .
+
+# Uncomment the above code running in dev environment or locally
+
+# Pull the much smaller, CPU-only PyTorch wheels for EC2
+# --extra-index-url https://download.pytorch.org/whl/cpu
+
+# torch
+# transformers[sentencepiece]
+# datasets
+# sacrebleu 
+# rouge_score 
+# py7zr
+# pandas
+# nltk
+# tqdm
+# PyYAML
+# matplotlib
+# boto3
+# mypy-boto3-s3
+# python-box==6.0.2
+# ensure==1.0.4
+
+# Bumped for Python 3.13 compatibility
+# fastapi>=0.100.0
+# uvicorn>=0.23.0
+# python-multipart
+# Jinja2>=3.1.2
+
+# accelerate
+# evaluate

@@ -1,0 +1,31 @@
+﻿# Git
+.git
+.gitignore
+
+# Python caching and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments (CRITICAL for saving space)
+venv/
+env/
+.env_venv/
+.venv/
+
+# Environment variables (CRITICAL for security)
+.env
+*.env
+
+# Jupyter Notebooks and ML caches
+.ipynb_checkpoints
+*.ipynb
+.huggingface/
+.cache/
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+
+# Docker

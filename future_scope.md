@@ -1,4 +1,4 @@
-# Future Scope & Project Roadmap 🚀
+# Future Scope & Project Roadmap ðŸš€
 
 This document outlines the planned enhancements and future directions for the Text Summarizer application to reach industry production standards and improve MLOps maturity.
 

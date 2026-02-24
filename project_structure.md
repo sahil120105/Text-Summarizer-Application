@@ -2,7 +2,7 @@
 
 This document provides an overview of the Text Summarizer Application's project structure. It is intended to help new contributors understand the codebase and to serve as a reference for future development.
 
-## 📂 Root Directory
+## ðŸ“‚ Root Directory
 
 | File/Directory | Description |
 | :--- | :--- |
@@ -19,7 +19,7 @@ This document provides an overview of the Text Summarizer Application's project 
 | `setup.py` | Setup script for packaging the application as a Python library. |
 | `template.py` | Utility script for project initialization or templating. |
 
-## 🏗️ Source Code Structure (`src/textSummarizer`)
+## ðŸ—ï¸ Source Code Structure (`src/textSummarizer`)
 
 The core logic resides in `src/textSummarizer`. It follows a modular, pipeline-based architecture.
 
@@ -33,7 +33,7 @@ The core logic resides in `src/textSummarizer`. It follows a modular, pipeline-b
 | `pipeline/` | Orchestrates the execution of components in stages (e.g., training, prediction). |
 | `utils/` | Common utility functions (e.g., file handling, parsing). |
 
-## 🔄 Development Workflow
+## ðŸ”„ Development Workflow
 
 Follow these steps for implementing new features or stages in the pipeline (e.g., adding `PredictionPipeline`).
 
@@ -55,7 +55,7 @@ Follow these steps for implementing new features or stages in the pipeline (e.g.
 5.  **Update `main.py`**
     *   Import and execute the new stage in `main.py` for CLI-based execution and verification.
 
-## 📝 Key Files
+## ðŸ“ Key Files
 
 *   **`config/config.yaml`**: Central configuration for artifacts, data paths, and model parameters.
 *   **`main.py`**: Sequentially runs pipeline stages (Data Ingestion -> Validation -> Transformation -> Training -> Prediction).
